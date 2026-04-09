@@ -11,7 +11,7 @@ New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 $logPath = Join-Path $logDir "copilot-proxy.log"
 $escapedProjectDir = $projectDir -replace "'", "''"
 $escapedLogPath = $logPath -replace "'", "''"
-$command = "Set-Location -LiteralPath '$escapedProjectDir'; bun run proxy-router.ts >> '$escapedLogPath' 2>&1"
+$command = "Set-Location -LiteralPath '$escapedProjectDir'; bun run proxy-router.ts *>> '$escapedLogPath'"
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"$command`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
