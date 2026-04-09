@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $taskName = "CopilotProxyService"
 $projectDir = $PSScriptRoot
 $logDir = Join-Path $env:LOCALAPPDATA "copilot-proxy\logs"
-$userId = if ($env:USERDOMAIN) { "$($env:USERDOMAIN)\$($env:USERNAME)" } else { $env:USERNAME }
+$userId = if ($env:USERDOMAIN) { "$($env:USERDOMAIN)\$($env:USERNAME)" } else { "$($env:COMPUTERNAME)\$($env:USERNAME)" }
 $restartCount = 3
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
