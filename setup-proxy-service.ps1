@@ -11,7 +11,17 @@ New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 $logPath = Join-Path $logDir "copilot-proxy.log"
 $escapedProjectDir = $projectDir -replace "'", "''"
 $escapedLogPath = $logPath -replace "'", "''"
-$command = "Set-Location -LiteralPath '$escapedProjectDir'; bun run proxy-router.ts 2>&1 | Out-File -Append -FilePath '$escapedLogPath'"
+$commandParts = @(
+    '$utf8NoBom = [System.Text.UTF8Encoding]::new($false)'
+    '[Console]::InputEncoding = $utf8NoBom'
+    '[Console]::OutputEncoding = $utf8NoBom'
+    '$OutputEncoding = $utf8NoBom'
+    '$env:NO_COLOR = ''1'''
+    '$env:FORCE_COLOR = ''0'''
+    "Set-Location -LiteralPath '$escapedProjectDir'"
+    "bun run proxy-router.ts 2>&1 | Out-File -Append -Encoding utf8 -FilePath '$escapedLogPath'"
+)
+$command = $commandParts -join '; '
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"$command`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
