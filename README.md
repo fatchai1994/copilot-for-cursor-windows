@@ -133,6 +133,7 @@ If you encounter issues, check the logs:
 **Windows (PowerShell)**
 *   Proxy: `Get-Content "$env:LOCALAPPDATA\copilot-proxy\logs\copilot-proxy.log" -Wait`
 *   API: `Get-Content "$env:LOCALAPPDATA\copilot-proxy\logs\copilot-api.log" -Wait`
+*   Recommended: view logs in PowerShell/Windows Terminal for best rendering; if using Notepad, ensure the file encoding is UTF-8.
 
 ---
 
