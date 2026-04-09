@@ -124,7 +124,7 @@ Bun.serve({
 
                 return {
                     type: 'text',
-                    text: typeof part.text === 'string' ? part.text : JSON.stringify(part)
+                    text: typeof part.text === 'string' ? part.text : '[Unsupported content type]'
                 };
             };
             
@@ -159,7 +159,7 @@ Bun.serve({
                             const toolUses = msg.content.filter((part: any) => part.type === 'tool_use');
                             if (toolUses.length > 0) {
                                 const mappedToolCalls = toolUses.map((part: any, idx: number) => ({
-                                    id: part.id || part.tool_use_id || (typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `tool_call_${Date.now()}_${i}_${idx}`),
+                                    id: part.id || part.tool_use_id || (typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `tool_call_${Date.now()}_${Math.random().toString(36).slice(2)}_${i}_${idx}`),
                                     type: 'function',
                                     function: {
                                         name: part.name,
@@ -169,8 +169,7 @@ Bun.serve({
                                 const existingToolCalls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
                                 const dedupedToolCalls = new Map<string, any>();
                                 [...existingToolCalls, ...mappedToolCalls].forEach((call: any) => {
-                                    const dedupeKey = JSON.stringify({
-                                        id: call.id || '',
+                                    const dedupeKey = call.id || JSON.stringify({
                                         name: call.function?.name || '',
                                         arguments: call.function?.arguments || ''
                                     });
