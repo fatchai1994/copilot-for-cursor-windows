@@ -25,4 +25,4 @@ Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Pr
 Start-ScheduledTask -TaskName $taskName
 
 Write-Host "✅ Scheduled task '$taskName' created and started."
-Write-Host "Logs available at: $logDir\copilot-api.log"
+Write-Host "Logs available at: $logPath"
