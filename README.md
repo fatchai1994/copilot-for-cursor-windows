@@ -21,14 +21,17 @@ This project provides a local proxy server that acts as a bridge between Cursor 
 
 ### 1. Prerequisites
 *   Node.js & npm
-*   Bun (`curl -fsSL https://bun.sh/install | bash`)
+*   Bun
+    *   macOS/Linux: `curl -fsSL https://bun.sh/install | bash`
+    *   Windows (PowerShell): `powershell -c "irm bun.sh/install.ps1 | iex"`
 *   ngrok (for HTTPS tunneling required by Cursor)
 
-### 2. Installation & Auto-Start (macOS)
-Run these scripts once to set up persistent background services. They will start automatically on boot and restart if they crash.
+### 2. Installation & Auto-Start
+Run these scripts once to set up persistent background services. They will start automatically on login and restart if they crash.
 
 **Note:** The `setup-copilot-service.sh` script will automatically install and run the upstream `copilot-api` via `npx`, so you don't need to clone that repository manually.
 
+**macOS / Linux**
 ```bash
 # 1. Setup Core API (Port 4141)
 chmod +x setup-copilot-service.sh
@@ -37,6 +40,20 @@ chmod +x setup-copilot-service.sh
 # 2. Setup Proxy Router (Port 4142)
 chmod +x setup-proxy-service.sh
 ./setup-proxy-service.sh
+```
+
+**Windows (PowerShell)**
+```powershell
+# 1. Setup Core API (Port 4141)
+powershell -ExecutionPolicy Bypass -File .\setup-copilot-service.ps1
+
+# 2. Setup Proxy Router (Port 4142)
+powershell -ExecutionPolicy Bypass -File .\setup-proxy-service.ps1
+```
+
+If your PowerShell execution policy blocks scripts, run:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
 ### 3. Verify Services
@@ -108,8 +125,14 @@ To prevent crashes, the proxy automatically **strips images** from requests sent
 
 ### 📝 Logs
 If you encounter issues, check the logs:
+
+**macOS / Linux**
 *   Proxy: `tail -f ~/Library/Logs/copilot-proxy.log`
 *   API: `tail -f ~/Library/Logs/copilot-api.log`
+
+**Windows (PowerShell)**
+*   Proxy: `Get-Content "$env:LOCALAPPDATA\copilot-proxy\logs\copilot-proxy.log" -Wait`
+*   API: `Get-Content "$env:LOCALAPPDATA\copilot-proxy\logs\copilot-api.log" -Wait`
 
 ---
 
