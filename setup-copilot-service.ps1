@@ -8,8 +8,11 @@ $restartCount = 3
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 
-$command = "cd /d `"$projectDir`" && npx copilot-api start >> `"$logDir\copilot-api.log`" 2>>&1"
-$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$command`""
+$logPath = Join-Path $logDir "copilot-api.log"
+$escapedProjectDir = $projectDir -replace "'", "''"
+$escapedLogPath = $logPath -replace "'", "''"
+$command = "Set-Location -LiteralPath '$escapedProjectDir'; npx copilot-api start >> '$escapedLogPath' 2>&1"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"$command`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount $restartCount -RestartInterval (New-TimeSpan -Minutes 1)

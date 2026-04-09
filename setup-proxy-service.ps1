@@ -8,8 +8,11 @@ $restartCount = 3
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 
-$command = "cd /d `"$projectDir`" && bun run proxy-router.ts >> `"$logDir\copilot-proxy.log`" 2>>&1"
-$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$command`""
+$logPath = Join-Path $logDir "copilot-proxy.log"
+$escapedProjectDir = $projectDir -replace "'", "''"
+$escapedLogPath = $logPath -replace "'", "''"
+$command = "Set-Location -LiteralPath '$escapedProjectDir'; bun run proxy-router.ts >> '$escapedLogPath' 2>&1"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"$command`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount $restartCount -RestartInterval (New-TimeSpan -Minutes 1)
