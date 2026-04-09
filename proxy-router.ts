@@ -92,6 +92,33 @@ Bun.serve({
         // --- PROCESS MESSAGES (Sanitize, Transform, Handle Tools) ---
         if (json.messages && Array.isArray(json.messages)) {
             const newMessages: any[] = [];
+            const normalizeContentPart = (part: any) => {
+                if (part.cache_control) delete part.cache_control;
+
+                // CLAUDE: Strip Images (Quietly)
+                if (isClaude) {
+                    if (part.type === 'image' || (part.source && part.source.type === 'base64')) {
+                        return { type: 'text', text: '[Image Omitted]' };
+                    }
+                }
+
+                // ALL: Transform Images
+                if (part.type === 'image' && part.source && part.source.type === 'base64') {
+                    return {
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${part.source.media_type};base64,${part.source.data}`
+                        }
+                    };
+                }
+                if (part.type === 'image') return { type: 'image_url', image_url: part.image_url || part.source };
+                if (part.type === 'image_url' || part.type === 'text') return part;
+
+                return {
+                    type: 'text',
+                    text: typeof part.text === 'string' ? part.text : JSON.stringify(part)
+                };
+            };
             
             for (let i = 0; i < json.messages.length; i++) {
                 const msg = json.messages[i];
@@ -112,28 +139,7 @@ Bun.serve({
                         
                         const otherContent = msg.content.filter((c: any) => c.type !== 'tool_result');
                         if (otherContent.length > 0) {
-                            const mappedContent = otherContent.map((part: any) => {
-                                if (part.cache_control) delete part.cache_control;
-                                
-                                // CLAUDE: Strip Images (Quietly)
-                                if (isClaude) {
-                                    if (part.type === 'image' || (part.source && part.source.type === 'base64')) {
-                                        return { type: 'text', text: '[Image Omitted]' };
-                                    }
-                                }
-
-                                // ALL: Transform Images
-                                if (part.type === 'image' && part.source && part.source.type === 'base64') {
-                                    return {
-                                        type: 'image_url',
-                                        image_url: {
-                                            url: `data:${part.source.media_type};base64,${part.source.data}`
-                                        }
-                                    };
-                                }
-                                if (part.type === 'image') part.type = 'image_url';
-                                return part;
-                            });
+                            const mappedContent = otherContent.map((part: any) => normalizeContentPart(part));
                             newMessages.push({ role: 'user', content: mappedContent });
                         }
                     }
@@ -141,31 +147,27 @@ Bun.serve({
 
                 if (!isToolResult) {
                     if (Array.isArray(msg.content)) {
-                        msg.content = msg.content.map((part: any) => {
-                            if (part.cache_control) delete part.cache_control;
-                            
-                            // CLAUDE: Strip Images (Quietly)
-                            if (isClaude) {
-                                if (part.type === 'image' || (part.source && part.source.type === 'base64')) {
-                                    return { type: 'text', text: '[Image Omitted]' };
-                                }
-                            }
-
-                            // ALL: Transform Images
-                            if (part.type === 'image' && part.source && part.source.type === 'base64') {
-                                return {
-                                    type: 'image_url',
-                                    image_url: {
-                                        url: `data:${part.source.media_type};base64,${part.source.data}`
+                        if (msg.role === 'assistant') {
+                            const toolUses = msg.content.filter((part: any) => part.type === 'tool_use');
+                            if (toolUses.length > 0) {
+                                const mappedToolCalls = toolUses.map((part: any, idx: number) => ({
+                                    id: part.id || part.tool_use_id || `tool_call_${i}_${idx}`,
+                                    type: 'function',
+                                    function: {
+                                        name: part.name,
+                                        arguments: typeof part.input === 'string' ? part.input : JSON.stringify(part.input || {})
                                     }
-                                };
+                                }));
+                                msg.tool_calls = Array.isArray(msg.tool_calls) ? [...msg.tool_calls, ...mappedToolCalls] : mappedToolCalls;
                             }
-                            
-                            if (part.type === 'image') part.type = 'image_url';
-                            return part;
-                        });
+                            msg.content = msg.content
+                                .filter((part: any) => part.type !== 'tool_use')
+                                .map((part: any) => normalizeContentPart(part));
+                        } else {
+                            msg.content = msg.content.map((part: any) => normalizeContentPart(part));
+                        }
                         
-                        if (msg.content.length === 0) msg.content = " ";
+                        if (msg.content.length === 0) msg.content = msg.role === 'assistant' && msg.tool_calls ? "" : " ";
                     }
                     newMessages.push(msg);
                 }
