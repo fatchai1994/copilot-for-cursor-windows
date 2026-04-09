@@ -111,7 +111,15 @@ Bun.serve({
                         }
                     };
                 }
-                if (part.type === 'image') return { type: 'image_url', image_url: part.image_url || part.source };
+                if (part.type === 'image') {
+                    if (part.image_url && typeof part.image_url === 'object') {
+                        return { type: 'image_url', image_url: part.image_url };
+                    }
+                    if (part.source && typeof part.source.url === 'string') {
+                        return { type: 'image_url', image_url: { url: part.source.url } };
+                    }
+                    return { type: 'text', text: '[Unsupported image omitted]' };
+                }
                 if (part.type === 'image_url' || part.type === 'text') return part;
 
                 return {
@@ -158,7 +166,13 @@ Bun.serve({
                                         arguments: typeof part.input === 'string' ? part.input : JSON.stringify(part.input || {})
                                     }
                                 }));
-                                msg.tool_calls = Array.isArray(msg.tool_calls) ? [...msg.tool_calls, ...mappedToolCalls] : mappedToolCalls;
+                                const existingToolCalls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
+                                const dedupedToolCalls = new Map<string, any>();
+                                [...existingToolCalls, ...mappedToolCalls].forEach((call: any) => {
+                                    const dedupeKey = `${call.id || ''}:${call.function?.name || ''}:${call.function?.arguments || ''}`;
+                                    dedupedToolCalls.set(dedupeKey, call);
+                                });
+                                msg.tool_calls = Array.from(dedupedToolCalls.values());
                             }
                             msg.content = msg.content
                                 .filter((part: any) => part.type !== 'tool_use')
