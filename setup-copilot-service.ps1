@@ -4,6 +4,7 @@ $taskName = "CopilotApiService"
 $projectDir = $PSScriptRoot
 $logDir = Join-Path $env:LOCALAPPDATA "copilot-proxy\logs"
 $userId = if ($env:USERDOMAIN) { "$($env:USERDOMAIN)\$($env:USERNAME)" } else { $env:USERNAME }
+$restartCount = 3
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 
@@ -11,7 +12,7 @@ $command = "cd /d `"$projectDir`" && npx copilot-api start >> `"$logDir\copilot-
 $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$command`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount $restartCount -RestartInterval (New-TimeSpan -Minutes 1)
 
 if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
     Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
